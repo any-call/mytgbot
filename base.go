@@ -49,3 +49,19 @@ func SendMessage(bot *tgbotapi.BotAPI, chattable tgbotapi.Chattable) (*tgbotapi.
 
 	return &sendMsg, nil
 }
+
+func SetBotCommand(bot *tgbotapi.BotAPI, list []tgbotapi.BotCommand) error {
+	if bot == nil {
+		return fmt.Errorf("bot api is nil")
+	}
+
+	if list == nil {
+		return fmt.Errorf("command list is nil ")
+	}
+
+	if _, err := bot.Request(tgbotapi.NewSetMyCommands(list...)); err != nil {
+		return err
+	}
+
+	return nil
+}
