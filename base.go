@@ -73,6 +73,15 @@ func SendMessage(bot *tgbotapi.BotAPI, replyId int, chatId int64, message string
 	return sendMessage(bot, sendMsg)
 }
 
+func SendMessageWithRMarkup(bot *tgbotapi.BotAPI, replyId int, chatId int64, message string, markUpFun func() any) (*tgbotapi.Message, error) {
+	sendMsg := tgbotapi.NewMessage(chatId, message)
+	sendMsg.ReplyToMessageID = replyId
+	if markUpFun != nil {
+		sendMsg.ReplyMarkup = markUpFun()
+	}
+	return sendMessage(bot, sendMsg)
+}
+
 func SendMessageWithAutoDelete(bot *tgbotapi.BotAPI, replyId int, chatId int64, message string, autoDele time.Duration) error {
 	sendMsg := tgbotapi.NewMessage(chatId, message)
 	sendMsg.ReplyToMessageID = replyId
