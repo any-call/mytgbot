@@ -65,3 +65,9 @@ func SetBotCommand(bot *tgbotapi.BotAPI, list []tgbotapi.BotCommand) error {
 
 	return nil
 }
+
+func ReplyMessage(bot *tgbotapi.BotAPI, replyId int, chatId int64, message string) (*tgbotapi.Message, error) {
+	sendMsg := tgbotapi.NewMessage(chatId, message)
+	sendMsg.ReplyToMessageID = replyId
+	return SendMessage(bot, sendMsg)
+}

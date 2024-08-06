@@ -18,7 +18,7 @@ func (self group) GetChatMember(bot *tgbotapi.BotAPI, chatId int64, userId int64
 	return bot.GetChatMember(tgbotapi.GetChatMemberConfig{ChatConfigWithUser: chatMemberConfig})
 }
 
-func (self group) ListAdminChatMember(bot *tgbotapi.BotAPI, chatId int64, userId int64) ([]tgbotapi.ChatMember, error) {
+func (self group) ListAdminChatMember(bot *tgbotapi.BotAPI, chatId int64) ([]tgbotapi.ChatMember, error) {
 	chatConfig := tgbotapi.ChatAdministratorsConfig{
 		ChatConfig: tgbotapi.ChatConfig{
 			ChatID: chatId,
@@ -26,4 +26,12 @@ func (self group) ListAdminChatMember(bot *tgbotapi.BotAPI, chatId int64, userId
 	}
 
 	return bot.GetChatAdministrators(chatConfig)
+}
+
+func (self group) GetChatMembersCount(bot *tgbotapi.BotAPI, chatId int64) (int, error) {
+	return bot.GetChatMembersCount(tgbotapi.ChatMemberCountConfig{
+		ChatConfig: tgbotapi.ChatConfig{
+			ChatID: chatId,
+		},
+	})
 }
