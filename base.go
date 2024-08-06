@@ -4,6 +4,7 @@ import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"strings"
+	"time"
 )
 
 type (
@@ -33,7 +34,7 @@ func CheckErrStatus(err error) ErrStatus {
 	return ErrStatusUnknown
 }
 
-func SendMessage(bot *tgbotapi.BotAPI, chattable tgbotapi.Chattable) (*tgbotapi.Message, error) {
+func sendMessage(bot *tgbotapi.BotAPI, chattable tgbotapi.Chattable) (*tgbotapi.Message, error) {
 	if bot == nil {
 		return nil, fmt.Errorf("bot api is nil")
 	}
@@ -66,8 +67,24 @@ func SetBotCommand(bot *tgbotapi.BotAPI, list []tgbotapi.BotCommand) error {
 	return nil
 }
 
-func ReplyMessage(bot *tgbotapi.BotAPI, replyId int, chatId int64, message string) (*tgbotapi.Message, error) {
+func SendMessage(bot *tgbotapi.BotAPI, replyId int, chatId int64, message string) (*tgbotapi.Message, error) {
 	sendMsg := tgbotapi.NewMessage(chatId, message)
 	sendMsg.ReplyToMessageID = replyId
-	return SendMessage(bot, sendMsg)
+	return sendMessage(bot, sendMsg)
+}
+
+func SendMessageWithAutoDelete(bot *tgbotapi.BotAPI, replyId int, chatId int64, message string, autoDele time.Duration) error {
+	sendMsg := tgbotapi.NewMessage(chatId, message)
+	sendMsg.ReplyToMessageID = replyId
+	retMsg, err := sendMessage(bot, sendMsg)
+	if err != nil {
+		return err
+	}
+
+	go func(bt *tgbotapi.BotAPI, msgID int, groupID int64) {
+		time.Sleep(autoDele)
+		_, _ = bt.Request(tgbotapi.NewDeleteMessage(groupID, msgID))
+	}(bot, retMsg.MessageID, chatId)
+
+	return nil
 }
