@@ -3,6 +3,8 @@ package mytgbot
 import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -94,6 +96,26 @@ func SendMessageWithAutoDelete(bot *tgbotapi.BotAPI, replyId int, chatId int64, 
 		time.Sleep(autoDele)
 		_, _ = bt.Request(tgbotapi.NewDeleteMessage(groupID, msgID))
 	}(bot, retMsg.MessageID, chatId)
+
+	return nil
+}
+
+func SendMessageByToken(token string, toChatId int64, message string) error {
+	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", token)
+	// 构造请求参数
+	data := url.Values{}
+	data.Set("chat_id", fmt.Sprintf("%d", toChatId))
+	data.Set("text", message)
+	resp, err := http.PostForm(apiURL, data)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// 检查响应状态
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("消息发送失败，状态码: %d", resp.StatusCode)
+	}
 
 	return nil
 }
