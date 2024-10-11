@@ -75,6 +75,15 @@ func SendMessage(bot *tgbotapi.BotAPI, replyId int, chatId int64, message string
 	return sendMessage(bot, sendMsg)
 }
 
+func SendMessageEx(bot *tgbotapi.BotAPI, chatId int64, message string, configCb func(messageCfg *tgbotapi.MessageConfig)) (*tgbotapi.Message, error) {
+	sendMsg := tgbotapi.NewMessage(chatId, message)
+	if configCb != nil {
+		configCb(&sendMsg)
+	}
+
+	return sendMessage(bot, sendMsg)
+}
+
 func SendMessageWithRMarkup(bot *tgbotapi.BotAPI, replyId int, chatId int64, message string, markUpFun func() any) (*tgbotapi.Message, error) {
 	sendMsg := tgbotapi.NewMessage(chatId, message)
 	sendMsg.ReplyToMessageID = replyId
