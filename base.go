@@ -128,3 +128,20 @@ func SendMessageByToken(token string, toChatId int64, message string) error {
 
 	return nil
 }
+
+func SendPhoto(bot *tgbotapi.BotAPI, chatId int64, imageBytes []byte, configCb func(photoConfig *tgbotapi.PhotoConfig)) error {
+	photo := tgbotapi.NewPhoto(chatId,
+		tgbotapi.FileBytes{
+			Name:  "chart.png",
+			Bytes: imageBytes,
+		})
+	if configCb != nil {
+		configCb(&photo)
+	}
+
+	// 发送图片消息
+	if _, err := bot.Send(photo); err != nil {
+		return err
+	}
+	return nil
+}
