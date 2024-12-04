@@ -150,7 +150,7 @@ func SendPhoto(bot *tgbotapi.BotAPI, chatId int64, imageFileFn func() tgbotapi.R
 		return "", err
 	}
 
-	return uploadResp.Animation.FileID, nil
+	return uploadResp.Photo[0].FileID, nil
 }
 
 func SendAnimation(bot *tgbotapi.BotAPI, chatID int64, animationFileFn func() tgbotapi.RequestFileData, configCb func(photoConfig *tgbotapi.AnimationConfig)) (animationFileId string, err error) {
