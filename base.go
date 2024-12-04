@@ -129,14 +129,14 @@ func SendMessageByToken(token string, toChatId int64, message string) error {
 	return nil
 }
 
-func SendPhoto(bot *tgbotapi.BotAPI, chatId int64, imageFileFn func() tgbotapi.RequestFileData, configCb func(photoConfig *tgbotapi.PhotoConfig)) error {
+func SendPhoto(bot *tgbotapi.BotAPI, chatId int64, imageFileFn func() tgbotapi.RequestFileData, configCb func(photoConfig *tgbotapi.PhotoConfig)) (imageFileId string, err error) {
 	var fileData tgbotapi.RequestFileData = nil
 	if imageFileFn != nil {
 		fileData = imageFileFn()
 	}
 
 	if fileData == nil {
-		return fmt.Errorf("RequestFileData is nil")
+		return "", fmt.Errorf("RequestFileData is nil")
 	}
 
 	photo := tgbotapi.NewPhoto(chatId, fileData)
@@ -145,20 +145,22 @@ func SendPhoto(bot *tgbotapi.BotAPI, chatId int64, imageFileFn func() tgbotapi.R
 	}
 
 	// 发送图片消息
-	if _, err := bot.Send(photo); err != nil {
-		return err
+	uploadResp, err := bot.Send(photo)
+	if err != nil {
+		return "", err
 	}
-	return nil
+
+	return uploadResp.Animation.FileID, nil
 }
 
-func SendAnimation(bot *tgbotapi.BotAPI, chatID int64, animationFileFn func() tgbotapi.RequestFileData, configCb func(photoConfig *tgbotapi.AnimationConfig)) error {
+func SendAnimation(bot *tgbotapi.BotAPI, chatID int64, animationFileFn func() tgbotapi.RequestFileData, configCb func(photoConfig *tgbotapi.AnimationConfig)) (animationFileId string, err error) {
 	var fileData tgbotapi.RequestFileData = nil
 	if animationFileFn != nil {
 		fileData = animationFileFn()
 	}
 
 	if fileData == nil {
-		return fmt.Errorf("RequestFileData is nil")
+		return "", fmt.Errorf("RequestFileData is nil")
 	}
 
 	animationMsg := tgbotapi.NewAnimation(chatID, fileData)
@@ -167,9 +169,10 @@ func SendAnimation(bot *tgbotapi.BotAPI, chatID int64, animationFileFn func() tg
 	}
 
 	// 发送图片消息
-	if _, err := bot.Send(animationMsg); err != nil {
-		return err
+	uploadResp, err := bot.Send(animationMsg)
+	if err != nil {
+		return "", err
 	}
 
-	return nil
+	return uploadResp.Animation.FileID, nil
 }
