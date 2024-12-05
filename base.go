@@ -53,29 +53,7 @@ func sendMessage(bot *tgbotapi.BotAPI, chattable tgbotapi.Chattable) (*tgbotapi.
 	return &sendMsg, nil
 }
 
-func SetBotCommand(bot *tgbotapi.BotAPI, list []tgbotapi.BotCommand) error {
-	if bot == nil {
-		return fmt.Errorf("bot api is nil")
-	}
-
-	if list == nil {
-		return fmt.Errorf("command list is nil ")
-	}
-
-	if _, err := bot.Request(tgbotapi.NewSetMyCommands(list...)); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func SendMessage(bot *tgbotapi.BotAPI, replyId int, chatId int64, message string) (*tgbotapi.Message, error) {
-	sendMsg := tgbotapi.NewMessage(chatId, message)
-	sendMsg.ReplyToMessageID = replyId
-	return sendMessage(bot, sendMsg)
-}
-
-func SendMessageEx(bot *tgbotapi.BotAPI, chatId int64, message string, configCb func(messageCfg *tgbotapi.MessageConfig)) (*tgbotapi.Message, error) {
+func SendMessage(bot *tgbotapi.BotAPI, chatId int64, message string, configCb func(messageCfg *tgbotapi.MessageConfig)) (*tgbotapi.Message, error) {
 	sendMsg := tgbotapi.NewMessage(chatId, message)
 	if configCb != nil {
 		configCb(&sendMsg)
@@ -84,19 +62,8 @@ func SendMessageEx(bot *tgbotapi.BotAPI, chatId int64, message string, configCb 
 	return sendMessage(bot, sendMsg)
 }
 
-func SendMessageWithRMarkup(bot *tgbotapi.BotAPI, replyId int, chatId int64, message string, markUpFun func() any) (*tgbotapi.Message, error) {
-	sendMsg := tgbotapi.NewMessage(chatId, message)
-	sendMsg.ReplyToMessageID = replyId
-	if markUpFun != nil {
-		sendMsg.ReplyMarkup = markUpFun()
-	}
-	return sendMessage(bot, sendMsg)
-}
-
-func SendMessageWithAutoDelete(bot *tgbotapi.BotAPI, replyId int, chatId int64, message string, autoDele time.Duration) error {
-	sendMsg := tgbotapi.NewMessage(chatId, message)
-	sendMsg.ReplyToMessageID = replyId
-	retMsg, err := sendMessage(bot, sendMsg)
+func SendMessageByAutoDel(bot *tgbotapi.BotAPI, chatId int64, message string, configCb func(messageCfg *tgbotapi.MessageConfig), autoDele time.Duration) error {
+	msg, err := SendMessage(bot, chatId, message, configCb)
 	if err != nil {
 		return err
 	}
@@ -104,27 +71,7 @@ func SendMessageWithAutoDelete(bot *tgbotapi.BotAPI, replyId int, chatId int64, 
 	go func(bt *tgbotapi.BotAPI, msgID int, groupID int64) {
 		time.Sleep(autoDele)
 		_, _ = bt.Request(tgbotapi.NewDeleteMessage(groupID, msgID))
-	}(bot, retMsg.MessageID, chatId)
-
-	return nil
-}
-
-func SendMessageByToken(token string, toChatId int64, message string) error {
-	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", token)
-	// 构造请求参数
-	data := url.Values{}
-	data.Set("chat_id", fmt.Sprintf("%d", toChatId))
-	data.Set("text", message)
-	resp, err := http.PostForm(apiURL, data)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	// 检查响应状态
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("消息发送失败，状态码: %d", resp.StatusCode)
-	}
+	}(bot, msg.MessageID, chatId)
 
 	return nil
 }
@@ -175,4 +122,24 @@ func SendAnimation(bot *tgbotapi.BotAPI, chatID int64, animationFileFn func() tg
 	}
 
 	return uploadResp.Animation.FileID, nil
+}
+
+func SendMessageByToken(token string, toChatId int64, message string) error {
+	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", token)
+	// 构造请求参数
+	data := url.Values{}
+	data.Set("chat_id", fmt.Sprintf("%d", toChatId))
+	data.Set("text", message)
+	resp, err := http.PostForm(apiURL, data)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// 检查响应状态
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("消息发送失败，状态码: %d", resp.StatusCode)
+	}
+
+	return nil
 }
