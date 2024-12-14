@@ -143,3 +143,16 @@ func SendMessageByToken(token string, toChatId int64, message string) error {
 
 	return nil
 }
+
+// 关于markdown 格式的特别显示
+func MarkdownLinkText(showText, linkText string) string {
+	return fmt.Sprintf("[%s](%s)", showText, linkText)
+}
+
+func MarkdownCopyText(showText string) string {
+	return fmt.Sprintf("`%s`", showText)
+}
+
+func HtmlLinkText(showText, linkText string) string {
+	return fmt.Sprintf("<a href='%s'>%s</a>", linkText, showText)
+}
