@@ -156,3 +156,7 @@ func MarkdownCopyText(showText string) string {
 func HtmlLinkText(showText, linkText string) string {
 	return fmt.Sprintf("<a href='%s'>%s</a>", linkText, showText)
 }
+
+func GenUserLink(userID int64) string {
+	return fmt.Sprintf("tg://user?id=%d", userID)
+}
