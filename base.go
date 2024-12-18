@@ -76,14 +76,14 @@ func SendMessageByAutoDel(bot *tgbotapi.BotAPI, chatId int64, message string, co
 	return nil
 }
 
-func SendPhoto(bot *tgbotapi.BotAPI, chatId int64, imageFileFn func() tgbotapi.RequestFileData, configCb func(photoConfig *tgbotapi.PhotoConfig)) (imageFileId string, err error) {
+func SendPhoto(bot *tgbotapi.BotAPI, chatId int64, imageFileFn func() tgbotapi.RequestFileData, configCb func(photoConfig *tgbotapi.PhotoConfig)) (messageID int, imageFileId string, err error) {
 	var fileData tgbotapi.RequestFileData = nil
 	if imageFileFn != nil {
 		fileData = imageFileFn()
 	}
 
 	if fileData == nil {
-		return "", fmt.Errorf("RequestFileData is nil")
+		return 0, "", fmt.Errorf("RequestFileData is nil")
 	}
 
 	photo := tgbotapi.NewPhoto(chatId, fileData)
@@ -94,20 +94,20 @@ func SendPhoto(bot *tgbotapi.BotAPI, chatId int64, imageFileFn func() tgbotapi.R
 	// 发送图片消息
 	uploadResp, err := bot.Send(photo)
 	if err != nil {
-		return "", err
+		return 0, "", err
 	}
 
-	return uploadResp.Photo[0].FileID, nil
+	return uploadResp.MessageID, uploadResp.Photo[0].FileID, nil
 }
 
-func SendAnimation(bot *tgbotapi.BotAPI, chatID int64, animationFileFn func() tgbotapi.RequestFileData, configCb func(photoConfig *tgbotapi.AnimationConfig)) (animationFileId string, err error) {
+func SendAnimation(bot *tgbotapi.BotAPI, chatID int64, animationFileFn func() tgbotapi.RequestFileData, configCb func(photoConfig *tgbotapi.AnimationConfig)) (messageID int, animationFileId string, err error) {
 	var fileData tgbotapi.RequestFileData = nil
 	if animationFileFn != nil {
 		fileData = animationFileFn()
 	}
 
 	if fileData == nil {
-		return "", fmt.Errorf("RequestFileData is nil")
+		return 0, "", fmt.Errorf("RequestFileData is nil")
 	}
 
 	animationMsg := tgbotapi.NewAnimation(chatID, fileData)
@@ -118,10 +118,10 @@ func SendAnimation(bot *tgbotapi.BotAPI, chatID int64, animationFileFn func() tg
 	// 发送图片消息
 	uploadResp, err := bot.Send(animationMsg)
 	if err != nil {
-		return "", err
+		return 0, "", err
 	}
 
-	return uploadResp.Animation.FileID, nil
+	return uploadResp.MessageID, uploadResp.Animation.FileID, nil
 }
 
 func SendMessageByToken(token string, toChatId int64, message string) error {
