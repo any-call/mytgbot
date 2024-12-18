@@ -35,3 +35,12 @@ func (self group) GetChatMembersCount(bot *tgbotapi.BotAPI, chatId int64) (int, 
 		},
 	})
 }
+
+func (self group) GetChatUser(bot *tgbotapi.BotAPI, chatId int64, username string) (tgbotapi.Chat, error) {
+	return bot.GetChat(tgbotapi.ChatInfoConfig{
+		ChatConfig: tgbotapi.ChatConfig{
+			ChatID:             chatId,
+			SuperGroupUsername: username,
+		},
+	})
+}
