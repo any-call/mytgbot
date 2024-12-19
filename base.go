@@ -124,17 +124,22 @@ func SendAnimation(bot *tgbotapi.BotAPI, chatID int64, animationFileFn func() tg
 	return uploadResp.MessageID, uploadResp.Animation.FileID, nil
 }
 
-func SendMessageByToken(token string, toChatId int64, message string) error {
+func SendMessageByToken(token string, toChatId int64, message string, configFn func(values url.Values)) error {
 	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", token)
 	// 构造请求参数
 	data := url.Values{}
 	data.Set("chat_id", fmt.Sprintf("%d", toChatId))
 	data.Set("text", message)
+	if configFn != nil {
+		configFn(data) //此处可以在外转增加一些参数 ：parse_mode / reply_markup
+	}
 	resp, err := http.PostForm(apiURL, data)
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	// 检查响应状态
 	if resp.StatusCode != http.StatusOK {
