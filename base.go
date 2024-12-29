@@ -1,6 +1,7 @@
 package mytgbot
 
 import (
+	"encoding/json"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"net/http"
@@ -18,6 +19,16 @@ const (
 	ErrStatusKicked       ErrStatus = 1   //对话已被踢出群聊
 	ErrStatusGroupDeleted ErrStatus = 2   //群组被删除
 	ErrStatusUnknown      ErrStatus = 100 //未知的错误
+)
+
+type (
+	InviteTempData struct {
+		InviteLink         string `json:"invite_link"`
+		Name               string `json:"name"`
+		ExpireDate         int    `json:"expire_date"`
+		MemberLimit        int    `json:"member_limit"`
+		CreatesJoinRequest bool   `json:"creates_join_request"`
+	}
 )
 
 func CheckErrStatus(err error) ErrStatus {
@@ -200,6 +211,94 @@ func SendMessageByToken(token string, toChatId int64, message string, configFn f
 	}
 
 	return nil
+}
+
+// 生成群永久链接，这个链接中永久的，唯一的，多次生成，则新的替换成旧的 。
+func CreatePermanentInviteLink(token string, chatId int64) (ret string, err error) {
+	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/exportChatInviteLink", token)
+	// 构造请求参数
+	data := url.Values{}
+	data.Set("chat_id", fmt.Sprintf("%d", chatId))
+
+	resp, err := http.PostForm(apiURL, data)
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	// 检查响应状态
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("消息发送失败，状态码: %d", resp.StatusCode)
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	// 解析响应
+	var result struct {
+		Ok     bool   `json:"ok"`
+		Result string `json:"result"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("failed to decode response: %v", err)
+	}
+
+	// 返回邀请链接
+	if !result.Ok {
+		return "", fmt.Errorf("failed to get invite link")
+	}
+
+	return result.Result, nil
+
+}
+
+// 生成临时邀请链接 ，可为不同人生成，场景更丰富
+func CreateTempInviteLink(token string, chatId int64, name string, expireDate time.Time, maxLimit int, joinCheck bool) (ret *InviteTempData, err error) {
+	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/createChatInviteLink", token)
+	// 构造请求参数
+	data := url.Values{}
+	data.Set("chat_id", fmt.Sprintf("%d", chatId))
+	data.Set("name", name)
+	data.Set("expire_date", fmt.Sprintf("%d", expireDate.Unix()))
+	data.Set("member_limit", fmt.Sprintf("%d", maxLimit))
+	data.Set("creates_join_request", fmt.Sprintf("%t", joinCheck))
+
+	resp, err := http.PostForm(apiURL, data)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	// 检查响应状态
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("消息发送失败，状态码: %d", resp.StatusCode)
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	// 解析响应
+	var result struct {
+		Ok     bool           `json:"ok"`
+		Result InviteTempData `json:"result"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %v", err)
+	}
+
+	// 返回邀请链接
+	if !result.Ok {
+		return nil, fmt.Errorf("failed to get invite link")
+	}
+
+	return &result.Result, nil
+
 }
 
 // 关于markdown 格式的特别显示
