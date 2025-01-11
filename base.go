@@ -1,9 +1,12 @@
 package mytgbot
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strings"
@@ -208,6 +211,69 @@ func SendMessageByToken(token string, toChatId int64, message string, configFn f
 	// 检查响应状态
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("消息发送失败，状态码: %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+func SendPhotoByToken(token string, toChatId int64, photoName string, photoData []byte, caption string, configFn func(values *multipart.Writer)) error {
+	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/sendPhoto", token)
+	// 构造表单数据
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	// 添加 chat_id 字段
+	if err := writer.WriteField("chat_id", fmt.Sprintf("%d", toChatId)); err != nil {
+		return fmt.Errorf("failed to add chat_id: %w", err)
+	}
+
+	// 添加 caption 字段（可选）
+	if caption != "" {
+		if err := writer.WriteField("caption", caption); err != nil {
+			return fmt.Errorf("failed to add caption: %w", err)
+		}
+	}
+
+	if configFn != nil {
+		configFn(writer) //此处可以在外转增加一些参数 ：parse_mode / reply_markup
+	}
+
+	// 添加图片数据
+	part, err := writer.CreateFormFile("photo", photoName)
+	if err != nil {
+		return fmt.Errorf("failed to create form file: %w", err)
+	}
+
+	// 写入图片字节数据
+	if _, err := io.Copy(part, bytes.NewReader(photoData)); err != nil {
+		return fmt.Errorf("failed to copy photo data: %w", err)
+	}
+
+	// 关闭表单
+	if err := writer.Close(); err != nil {
+		return fmt.Errorf("failed to close writer: %w", err)
+	}
+
+	// 创建 HTTP 请求
+	req, err := http.NewRequest("POST", apiURL, body)
+	if err != nil {
+		return fmt.Errorf("failed to create HTTP request: %w", err)
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	// 执行请求
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send request: %w", err)
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	// 检查响应
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("Telegram API returned error: %s", string(respBody))
 	}
 
 	return nil
