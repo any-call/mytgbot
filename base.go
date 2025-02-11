@@ -383,3 +383,16 @@ func HtmlLinkText(showText, linkText string) string {
 func GenUserLink(userID int64) string {
 	return fmt.Sprintf("tg://user?id=%d", userID)
 }
+
+func WebhookHandler(w http.ResponseWriter, r *http.Request, cbFun func(update tgbotapi.Update)) {
+	var update tgbotapi.Update
+	err := json.NewDecoder(r.Body).Decode(&update)
+	if err != nil {
+		http.Error(w, "Cannot decode update", http.StatusBadRequest)
+		return
+	}
+
+	if cbFun != nil {
+		cbFun(update)
+	}
+}
