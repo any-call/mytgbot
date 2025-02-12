@@ -14,3 +14,13 @@ func TestCreateInviteLink(t *testing.T) {
 		t.Log("invite link is :", ret)
 	}
 }
+
+func TestGetBotUserName(t *testing.T) {
+	user, err := GetBotUserName("")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	t.Log("user is :", user.Result.Username)
+}

@@ -32,6 +32,16 @@ type (
 		MemberLimit        int    `json:"member_limit"`
 		CreatesJoinRequest bool   `json:"creates_join_request"`
 	}
+
+	UserData struct {
+		Ok     bool `json:"ok"`
+		Result struct {
+			ID        int64  `json:"id"`
+			IsBot     bool   `json:"is_bot"`
+			FirstName string `json:"first_name"`
+			Username  string `json:"username"`
+		} `json:"result"`
+	}
 )
 
 func CheckErrStatus(err error) ErrStatus {
@@ -277,6 +287,29 @@ func SendPhotoByToken(token string, toChatId int64, photoName string, photoData 
 	}
 
 	return nil
+}
+
+func GetBotUserName(token string) (*UserData, error) {
+	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/getMe", token)
+
+	resp, err := http.Get(apiURL)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	var result UserData
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+
+	if !result.Ok {
+		return nil, fmt.Errorf("failed to get bot info")
+	}
+
+	return &result, nil
 }
 
 // 生成群永久链接，这个链接中永久的，唯一的，多次生成，则新的替换成旧的 。
