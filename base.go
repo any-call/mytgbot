@@ -289,6 +289,24 @@ func SendPhotoByToken(token string, toChatId int64, photoName string, photoData 
 	return nil
 }
 
+func EditMessageCaption(bot *tgbotapi.BotAPI, chatId int64, editMessageID int, caption string, configFn func(editMsgConfig *tgbotapi.EditMessageCaptionConfig)) (tgbotapi.Message, error) {
+	editMsg := tgbotapi.NewEditMessageCaption(chatId, editMessageID, caption)
+	if configFn != nil {
+		configFn(&editMsg)
+	}
+
+	return bot.Send(editMsg)
+}
+
+func EditMessage(bot *tgbotapi.BotAPI, chatId int64, editMessageID int, text string, configFn func(editMsgConfig *tgbotapi.EditMessageTextConfig)) (tgbotapi.Message, error) {
+	editMsg := tgbotapi.NewEditMessageText(chatId, editMessageID, text)
+	if configFn != nil {
+		configFn(&editMsg)
+	}
+
+	return bot.Send(editMsg)
+}
+
 func GetBotUserName(token string) (*UserData, error) {
 	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/getMe", token)
 
