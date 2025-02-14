@@ -42,6 +42,18 @@ type (
 			Username  string `json:"username"`
 		} `json:"result"`
 	}
+
+	ChatResp struct {
+		Ok     bool `json:"ok"`
+		Result struct {
+			ID          int64  `json:"id"`
+			Title       string `json:"title"`
+			UserName    string `json:"username"`
+			Type        string `json:"type"`
+			Description string `json:"description"`
+			InviteLink  string `json:"invite_link"`
+		} `json:"result"`
+	}
 )
 
 func CheckErrStatus(err error) ErrStatus {
@@ -152,6 +164,28 @@ func GetChatDesc(bot *tgbotapi.BotAPI, chatID int64) (tgbotapi.Chat, error) {
 	return bot.GetChat(tgbotapi.ChatInfoConfig{ChatConfig: tgbotapi.ChatConfig{
 		ChatID: chatID,
 	}})
+}
+
+func GetChatByToken(token string, chatId int64) (*ChatResp, error) {
+	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/getChat?chat_id=%d", token, chatId)
+	resp, err := http.Get(apiURL)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	var result ChatResp
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+
+	if !result.Ok {
+		return nil, fmt.Errorf("failed to get chat info")
+	}
+
+	return &result, nil
 }
 
 func GenUserNameLink(userName string) string {
