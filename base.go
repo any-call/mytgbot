@@ -148,6 +148,16 @@ func SendAnimation(bot *tgbotapi.BotAPI, chatID int64, animationFileFn func() tg
 	return uploadResp.MessageID, uploadResp.Animation.FileID, nil
 }
 
+func GetChatDesc(bot *tgbotapi.BotAPI, chatID int64) (tgbotapi.Chat, error) {
+	return bot.GetChat(tgbotapi.ChatInfoConfig{ChatConfig: tgbotapi.ChatConfig{
+		ChatID: chatID,
+	}})
+}
+
+func GenUserNameLink(userName string) string {
+	return fmt.Sprintf("https://t.me/%s", userName)
+}
+
 // 禁言
 func ForbidSpeaking(bot *tgbotapi.BotAPI, chatID int64, tgUserID int64, t time.Duration) error {
 	// 禁言时长（例如禁言 1 小时）
