@@ -307,6 +307,15 @@ func EditMessage(bot *tgbotapi.BotAPI, chatId int64, editMessageID int, text str
 	return bot.Send(editMsg)
 }
 
+func AlertCallback(bot *tgbotapi.BotAPI, cbId string, message string, configFn func(callbackConfig *tgbotapi.CallbackConfig)) (tgbotapi.Message, error) {
+	alert := tgbotapi.NewCallbackWithAlert(cbId, message)
+	if configFn != nil {
+		configFn(&alert)
+	}
+
+	return bot.Send(alert)
+}
+
 func GetBotUserName(token string) (*UserData, error) {
 	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/getMe", token)
 
