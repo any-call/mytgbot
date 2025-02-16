@@ -43,16 +43,27 @@ type (
 		} `json:"result"`
 	}
 
-	ChatResp struct {
+	ChatResp[T any] struct {
 		Ok     bool `json:"ok"`
-		Result struct {
-			ID          int64  `json:"id"`
-			Title       string `json:"title"`
-			UserName    string `json:"username"`
-			Type        string `json:"type"`
-			Description string `json:"description"`
-			InviteLink  string `json:"invite_link"`
-		} `json:"result"`
+		Result T    `json:"result"`
+	}
+
+	// 用户信息
+	TelegramUser struct {
+		ID        int64  `json:"id"`
+		Type      string `json:"type"`     // 必须是 "private"
+		Username  string `json:"username"` // 可能为空
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+	}
+	// 群组/频道信息
+	TelegramChat struct {
+		ID          int64  `json:"id"`
+		Type        string `json:"type"`        // "group", "supergroup", "channel"
+		Title       string `json:"title"`       // 群组或频道的名称
+		Username    string `json:"username"`    // 可能为空
+		Description string `json:"description"` // 仅频道有
+		InviteLink  string `json:"invite_link"`
 	}
 )
 
@@ -166,8 +177,8 @@ func GetChatDesc(bot *tgbotapi.BotAPI, chatID int64) (tgbotapi.Chat, error) {
 	}})
 }
 
-func GetChatByToken(token string, chatId int64) (*ChatResp, error) {
-	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/getChat?chat_id=%d", token, chatId)
+func GetChatByToken(token string, groupID int64) (*TelegramChat, error) {
+	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/getChat?chat_id=%d", token, groupID)
 	resp, err := http.Get(apiURL)
 	if err != nil {
 		return nil, err
@@ -176,7 +187,7 @@ func GetChatByToken(token string, chatId int64) (*ChatResp, error) {
 		_ = resp.Body.Close()
 	}()
 
-	var result ChatResp
+	var result ChatResp[TelegramChat]
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
 	}
@@ -185,7 +196,29 @@ func GetChatByToken(token string, chatId int64) (*ChatResp, error) {
 		return nil, fmt.Errorf("failed to get chat info")
 	}
 
-	return &result, nil
+	return &result.Result, nil
+}
+
+func GetUserByToken(token string, userID int64) (*TelegramUser, error) {
+	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/getChat?chat_id=%d", token, userID)
+	resp, err := http.Get(apiURL)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	var result ChatResp[TelegramUser]
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+
+	if !result.Ok {
+		return nil, fmt.Errorf("failed to get chat info")
+	}
+
+	return &result.Result, nil
 }
 
 func GenUserNameLink(userName string) string {

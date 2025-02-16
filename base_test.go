@@ -1,6 +1,7 @@
 package mytgbot
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 )
@@ -23,4 +24,15 @@ func TestGetBotUserName(t *testing.T) {
 	}
 
 	t.Log("user is :", user.Result.Username)
+}
+
+func TestGetChatByToken(t *testing.T) {
+	chat, err := GetUserByToken("", 793370838)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	jb, _ := json.Marshal(chat)
+	t.Log("get chat is :", string(jb))
 }
