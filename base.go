@@ -225,59 +225,6 @@ func GenUserNameLink(userName string) string {
 	return fmt.Sprintf("https://t.me/%s", userName)
 }
 
-// 禁言
-func ForbidSpeaking(bot *tgbotapi.BotAPI, chatID int64, tgUserID int64, t time.Duration) error {
-	// 禁言时长（例如禁言 1 小时）
-	untilDate := time.Now().Add(t).Unix()
-	// 设置禁言权限
-	restrictConfig := tgbotapi.RestrictChatMemberConfig{
-		ChatMemberConfig: tgbotapi.ChatMemberConfig{
-			ChatID: chatID,
-			UserID: tgUserID,
-		},
-		UntilDate: untilDate,
-		Permissions: &tgbotapi.ChatPermissions{
-			CanSendMessages:       false,
-			CanSendMediaMessages:  false,
-			CanSendOtherMessages:  false,
-			CanAddWebPagePreviews: false,
-		},
-	}
-
-	// 调用 API 禁言
-	_, err := bot.Request(restrictConfig)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// 踢出群
-func RemoveUser(bot *tgbotapi.BotAPI, chatID int64, tgUserID int64, t time.Duration) error {
-	// 禁言时长（例如禁言 1 小时）
-	var untilDate int64 = 0 //表示永久禁止加入
-	if t > 0 {
-		untilDate = time.Now().Add(t).Unix()
-	}
-
-	// 配置踢出用户
-	kickConfig := tgbotapi.KickChatMemberConfig{
-		ChatMemberConfig: tgbotapi.ChatMemberConfig{
-			ChatID: chatID,
-			UserID: tgUserID,
-		},
-		UntilDate: untilDate,
-	}
-
-	// 调用 API 踢出用户
-	_, err := bot.Request(kickConfig)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func SendMessageByToken(token string, toChatId int64, message string, configFn func(values url.Values)) error {
 	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", token)
 	// 构造请求参数
