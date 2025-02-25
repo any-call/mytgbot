@@ -340,6 +340,17 @@ func AlertCallback(bot *tgbotapi.BotAPI, cbId string, message string, configFn f
 	return bot.Send(alert)
 }
 
+func PingMessage(bot *tgbotapi.BotAPI, chatID int64, messagaId int, notifaicationFlag bool) error {
+	pinMsg := tgbotapi.PinChatMessageConfig{
+		ChatID:              chatID,
+		MessageID:           messagaId,
+		DisableNotification: notifaicationFlag,
+	}
+
+	_, err := bot.Request(pinMsg)
+	return err
+}
+
 func GetBotUserName(token string) (*UserData, error) {
 	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/getMe", token)
 
