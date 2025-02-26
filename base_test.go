@@ -16,14 +16,15 @@ func TestCreateInviteLink(t *testing.T) {
 	}
 }
 
-func TestGetBotUserName(t *testing.T) {
-	user, err := GetBotUserName("")
+func TestGetBot(t *testing.T) {
+	user, err := GetBotInfo("")
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	t.Log("user is :", user.Result.Username)
+	jb, _ := json.Marshal(user.Result)
+	t.Log("user is :", string(jb))
 }
 
 func TestGetChatByToken(t *testing.T) {

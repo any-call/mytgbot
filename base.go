@@ -33,13 +33,16 @@ type (
 		CreatesJoinRequest bool   `json:"creates_join_request"`
 	}
 
-	UserData struct {
+	BotInfo struct {
 		Ok     bool `json:"ok"`
 		Result struct {
-			ID        int64  `json:"id"`
-			IsBot     bool   `json:"is_bot"`
-			FirstName string `json:"first_name"`
-			Username  string `json:"username"`
+			ID                      int64  `json:"id"`
+			IsBot                   bool   `json:"is_bot"`
+			FirstName               string `json:"first_name"`
+			Username                string `json:"username"`
+			CanJoinGroups           bool   `json:"can_join_groups"`
+			CanReadAllGroupMessages bool   `json:"can_read_all_group_messages"`
+			SupportsInlineQueries   bool   `json:"supports_inline_queries"`
 		} `json:"result"`
 	}
 
@@ -351,7 +354,7 @@ func PingMessage(bot *tgbotapi.BotAPI, chatID int64, messagaId int, notifaicatio
 	return err
 }
 
-func GetBotUserName(token string) (*UserData, error) {
+func GetBotInfo(token string) (*BotInfo, error) {
 	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/getMe", token)
 
 	resp, err := http.Get(apiURL)
@@ -362,7 +365,7 @@ func GetBotUserName(token string) (*UserData, error) {
 		_ = resp.Body.Close()
 	}()
 
-	var result UserData
+	var result BotInfo
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
 	}
