@@ -11,7 +11,8 @@ func ImpInline() inLine {
 	return inLine{}
 }
 
-func (self inLine) SendQueryResultArticle(bot *tgbotapi.BotAPI, queryID string, messageText string, configFn func(inlineCfg *tgbotapi.InlineQueryResultArticle)) (*tgbotapi.APIResponse, error) {
+func (self inLine) SendQueryResultArticle(bot *tgbotapi.BotAPI, queryID string, messageText string,
+	configFn func(inlineCfg *tgbotapi.InlineQueryResultArticle), config func(line *tgbotapi.InlineConfig)) (*tgbotapi.APIResponse, error) {
 	//返回查询的卡片
 	article := tgbotapi.NewInlineQueryResultArticle(queryID, "", messageText)
 	if configFn != nil {
@@ -22,6 +23,10 @@ func (self inLine) SendQueryResultArticle(bot *tgbotapi.BotAPI, queryID string, 
 		InlineQueryID: queryID,
 		Results:       []interface{}{article},
 		CacheTime:     1,
+	}
+
+	if config != nil {
+		config(&inlineConfig)
 	}
 
 	return bot.Request(inlineConfig)
