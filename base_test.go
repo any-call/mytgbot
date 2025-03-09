@@ -17,14 +17,11 @@ func TestCreateInviteLink(t *testing.T) {
 }
 
 func TestGetBot(t *testing.T) {
-	user, err := GetBotInfo("")
-	if err != nil {
+	if err := ImpGroup().LeaveChatByToken("", -4637345807); err != nil {
 		t.Error(err)
 		return
 	}
-
-	jb, _ := json.Marshal(user.Result)
-	t.Log("user is :", string(jb))
+	t.Log("leave ok")
 }
 
 func TestGetChatByToken(t *testing.T) {

@@ -1,6 +1,7 @@
 package mytgbot
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/any-call/gobase/frame/myctrl"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -14,6 +15,48 @@ type group struct {
 
 func ImpGroup() group {
 	return group{}
+}
+
+func (self group) LeaveChat(bot *tgbotapi.BotAPI, chatId int64) (*tgbotapi.APIResponse, error) {
+	// 让机器人主动退出群聊
+	leaveChat := tgbotapi.LeaveChatConfig{
+		ChatID: chatId,
+	}
+
+	return bot.Request(leaveChat)
+}
+
+func (self group) LeaveChatByToken(token string, chatId int64) error {
+	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/leaveChat?chat_id=%d", token, chatId)
+
+	resp, err := http.Get(apiURL)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	// 检查响应状态
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("消息发送失败，状态码: %d", resp.StatusCode)
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	// 解析响应
+	var result map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return fmt.Errorf("failed to decode response: %v", err)
+	}
+
+	fmt.Println("result is :", result)
+	if result["ok"].(bool) {
+		return nil
+	}
+
+	return fmt.Errorf("invalid data")
 }
 
 func (self group) GetChatMember(bot *tgbotapi.BotAPI, chatId int64, userId int64) (tgbotapi.ChatMember, error) {
