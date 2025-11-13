@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/any-call/gobase/frame/myctrl"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"io"
 	"mime/multipart"
@@ -334,6 +335,90 @@ func EditMessage(bot *tgbotapi.BotAPI, chatId int64, editMessageID int, text str
 	return bot.Send(editMsg)
 }
 
+func EditMessageSafe(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, text string, configFn func(editMsgConfig *tgbotapi.EditMessageTextConfig)) (*tgbotapi.Message, error) {
+	if bot == nil || msg == nil {
+		return nil, fmt.Errorf("bot or msg is nil ")
+	}
+
+	chatID := msg.Chat.ID
+	messageID := msg.MessageID
+
+	// 判断类型：纯文本消息可直接编辑
+	if msg.Text != "" && msg.Photo == nil {
+		if ret, err := EditMessage(bot, chatID, messageID, text, configFn); err != nil {
+			return nil, err
+		} else {
+			return &ret, nil
+		}
+	}
+
+	// 类型不匹配：删旧发新
+	_, _ = DelMessage(bot, chatID, messageID)
+	return SendMessage(bot, chatID, text, func(messageCfg *tgbotapi.MessageConfig) {
+		if configFn != nil {
+			m := tgbotapi.EditMessageTextConfig{} // 仅用于获取markup配置
+			configFn(&m)
+			messageCfg.ReplyMarkup = m.ReplyMarkup
+			messageCfg.ParseMode = m.ParseMode
+			if m.Text != "" {
+				messageCfg.Text = m.Text
+			}
+		}
+	})
+}
+
+func EditMessagePhotoSafe(bot *tgbotapi.BotAPI,
+	msg *tgbotapi.Message,
+	caption string,
+	getPhotoFn func() tgbotapi.RequestFileData, // 动态提供图片
+	configFn func(editMsgConfig *tgbotapi.EditMessageCaptionConfig)) (*tgbotapi.Message, error) {
+	if bot == nil || msg == nil {
+		return nil, fmt.Errorf("bot or msg is nil ")
+	}
+
+	chatID := msg.Chat.ID
+	messageID := msg.MessageID
+
+	// 判断类型：带图片消息可直接编辑 caption
+	if msg.Photo != nil && len(msg.Photo) > 0 {
+		edit := tgbotapi.NewEditMessageCaption(chatID, messageID, caption)
+		if configFn != nil {
+			configFn(&edit)
+		}
+
+		if ret, err := bot.Send(edit); err != nil {
+			return nil, err
+		} else {
+			return &ret, nil
+		}
+	}
+
+	// 类型不匹配：删旧发新
+	_, _ = DelMessage(bot, chatID, messageID)
+	newMsg := tgbotapi.NewPhoto(chatID, myctrl.ObjFun(func() tgbotapi.RequestFileData {
+		if getPhotoFn != nil {
+			return getPhotoFn()
+		}
+		return nil
+	}))
+	newMsg.Caption = caption
+	if configFn != nil {
+		tmp := tgbotapi.EditMessageCaptionConfig{}
+		configFn(&tmp)
+		newMsg.ReplyMarkup = tmp.ReplyMarkup
+		newMsg.ParseMode = tmp.ParseMode
+		if tmp.Caption != "" {
+			newMsg.Caption = tmp.Caption
+		}
+	}
+
+	ret, err := bot.Send(newMsg)
+	if err != nil {
+		return nil, err
+	}
+	return &ret, nil
+}
+
 func AlertCallback(bot *tgbotapi.BotAPI, cbId string, message string, configFn func(callbackConfig *tgbotapi.CallbackConfig)) (tgbotapi.Message, error) {
 	alert := tgbotapi.NewCallbackWithAlert(cbId, message)
 	if configFn != nil {
@@ -463,6 +548,10 @@ func CreateTempInviteLink(token string, chatId int64, name string, expireDate ti
 
 	return &result.Result, nil
 
+}
+
+func DelMessage(bot *tgbotapi.BotAPI, chatId int64, messageID int) (*tgbotapi.APIResponse, error) {
+	return bot.Request(tgbotapi.NewDeleteMessage(chatId, messageID))
 }
 
 // 关于markdown 格式的特别显示
