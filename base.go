@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/any-call/gobase/frame/myctrl"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"io"
 	"mime/multipart"
@@ -378,29 +377,32 @@ func EditMessagePhotoSafe(bot *tgbotapi.BotAPI,
 
 	chatID := msg.Chat.ID
 	messageID := msg.MessageID
+	// 获取外部提供的图片数据（可能为 nil）
+	var photoData tgbotapi.RequestFileData
+	if getPhotoFn != nil {
+		photoData = getPhotoFn()
+	}
 
 	// 判断类型：带图片消息可直接编辑 caption
 	if msg.Photo != nil && len(msg.Photo) > 0 {
-		edit := tgbotapi.NewEditMessageCaption(chatID, messageID, caption)
-		if configFn != nil {
-			configFn(&edit)
-		}
+		if photoData == nil {
+			edit := tgbotapi.NewEditMessageCaption(chatID, messageID, caption)
+			if configFn != nil {
+				configFn(&edit)
+			}
 
-		if ret, err := bot.Send(edit); err != nil {
-			return nil, err
-		} else {
-			return &ret, nil
+			if ret, err := bot.Send(edit); err != nil {
+				return nil, err
+			} else {
+				return &ret, nil
+			}
 		}
+		//外围传了图片 ，直接走删重发
 	}
 
 	// 类型不匹配：删旧发新
 	_, _ = DelMessage(bot, chatID, messageID)
-	newMsg := tgbotapi.NewPhoto(chatID, myctrl.ObjFun(func() tgbotapi.RequestFileData {
-		if getPhotoFn != nil {
-			return getPhotoFn()
-		}
-		return nil
-	}))
+	newMsg := tgbotapi.NewPhoto(chatID, photoData)
 	newMsg.Caption = caption
 	if configFn != nil {
 		tmp := tgbotapi.EditMessageCaptionConfig{}
