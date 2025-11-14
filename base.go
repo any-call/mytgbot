@@ -344,11 +344,10 @@ func EditMessageSafe(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, text string, c
 
 	// 判断类型：纯文本消息可直接编辑
 	if msg.Text != "" && msg.Photo == nil {
-		if ret, err := EditMessage(bot, chatID, messageID, text, configFn); err != nil {
-			return nil, err
-		} else {
+		if ret, err := EditMessage(bot, chatID, messageID, text, configFn); err == nil {
 			return &ret, nil
 		}
+		// 如果编辑失败，继续走“删旧发新”
 	}
 
 	// 类型不匹配：删旧发新
@@ -391,9 +390,7 @@ func EditMessagePhotoSafe(bot *tgbotapi.BotAPI,
 				configFn(&edit)
 			}
 
-			if ret, err := bot.Send(edit); err != nil {
-				return nil, err
-			} else {
+			if ret, err := bot.Send(edit); err == nil {
 				return &ret, nil
 			}
 		}

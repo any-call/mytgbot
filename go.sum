@@ -1,5 +1,3 @@
-github.com/any-call/gobase v1.11.46 h1:WIV7WLPJ1trN30dAKjxj7VlghSifBUjuaIv8c7XhD1Y=
-github.com/any-call/gobase v1.11.46/go.mod h1:1AKE2qwTDVjwHs6MZLkCVNgPu5rLbdnCPX0B9ayFjA4=
 github.com/any-call/gobase v1.12.31 h1:PFUy0kVe5Ft8Y6YUIqeTfJ7jIjLjr7GhD8iPA6T98NM=
 github.com/any-call/gobase v1.12.31/go.mod h1:1AKE2qwTDVjwHs6MZLkCVNgPu5rLbdnCPX0B9ayFjA4=
 github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1 h1:wG8n/XJQ07TmjbITcGiUaOtXxdrINDz1b0J1w0SzqDc=
