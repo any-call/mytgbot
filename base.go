@@ -346,6 +346,10 @@ func EditMessageSafe(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, text string, c
 	if msg.Text != "" && msg.Photo == nil {
 		if ret, err := EditMessage(bot, chatID, messageID, text, configFn); err == nil {
 			return &ret, nil
+		} else {
+			if IsErrNotModified(err) { //说明是消失没有编辑的问题，忽略这个错误 ,不用重新发消息
+				return nil, err
+			}
 		}
 		// 如果编辑失败，继续走“删旧发新”
 	}
@@ -581,4 +585,8 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request, cbFun func(update tg
 	if cbFun != nil {
 		cbFun(update)
 	}
+}
+
+func IsErrNotModified(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "message is not modified")
 }
