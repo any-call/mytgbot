@@ -347,7 +347,7 @@ func EditMessageSafe(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, text string, c
 		if ret, err := EditMessage(bot, chatID, messageID, text, configFn); err == nil {
 			return &ret, nil
 		} else {
-			if IsErrNotModified(err) { //说明是消失没有编辑的问题，忽略这个错误 ,不用重新发消息
+			if IsErrNotModified(err) { //说明是没有编辑的问题，忽略这个错误 ,不用重新发消息
 				return nil, err
 			}
 		}
