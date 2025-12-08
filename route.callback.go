@@ -3,12 +3,27 @@ package mytgbot
 import (
 	"fmt"
 	"github.com/any-call/gobase/util/myconv"
+	"github.com/any-call/gobase/util/mylog"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"strings"
 )
+
+type PaginatedResult struct {
+	TextItems  []string
+	ButtonRows [][]tgbotapi.InlineKeyboardButton
+}
 
 type CBData struct {
 	path string
 	data string
+}
+
+func NewCBData(path string, value ...string) *CBData {
+	m := &CBData{
+		path: path,
+	}
+	m.SetData(value...)
+	return m
 }
 
 // Encode
@@ -18,65 +33,99 @@ func (c CBData) Encode() string {
 		"d:" + c.data,
 	}
 
-	return strings.Join(parts, ";")
+	ret := strings.Join(parts, ";")
+	mylog.Info("encode is :", ret)
+	return ret
 }
 
-func (c CBData) GetCopy() CBData {
+func (c CBData) PushByData(p string, value ...string) CBData {
+	if p != "" {
+		if c.path == "" {
+			c.path = p
+		} else {
+			c.path = c.path + "," + p
+		}
+	}
+
+	c.SetData(value...)
 	return c
 }
 
-func (c CBData) PushPathAndEncode(p string, value string) string {
-	c.PushPath(p, value)
-	return c.Encode()
+// 回退到根节点
+func (c CBData) PopRootByData(v ...string) CBData {
+	c.path = c.Root()
+	c.SetData(v...)
+	return c
 }
 
-func (c *CBData) PushPath(p string, value string) {
-	if c.path == "" {
-		c.path = p
-	} else {
-		c.path = c.path + "," + p
+func (c CBData) PopByData(v ...string) CBData {
+	list := strings.Split(c.path, ",")
+	if len(list) > 1 {
+		c.path = strings.Join(list[:len(list)-1], ",")
 	}
-	c.data = value
+	c.SetData(v...)
+	return c
 }
 
-// PopPath 弹出 Path 栈的最后一个元素，返回该元素，同时更新 Path
-func (c *CBData) PopPath() string {
-	if c.path == "" {
-		return ""
+func (c CBData) PopSpecPathByData(path string, v ...string) CBData {
+	list := strings.Split(c.path, ",")
+	for i := len(list) - 1; i >= 0; i-- {
+		if list[i] == path {
+			c.path = strings.Join(list[:i+1], ",")
+			break
+		}
 	}
-	parts := strings.Split(c.path, ",")
-	last := parts[len(parts)-1]
-	if len(parts) > 1 {
-		c.path = strings.Join(parts[:len(parts)-1], ",")
-	} else {
-		c.path = ""
-	}
-	return last
+
+	c.SetData(v...)
+	return c
 }
 
-func (c *CBData) SetData(v string) {
-	c.data = v
+func (c CBData) NextPageByData(v ...string) CBData {
+	intV, _ := myconv.StrToNum[int](c.GetData()[0])
+	param := []string{fmt.Sprintf("%d", intV+1)}
+	param = append(param, v...)
+	c.SetData(param...)
+	return c
 }
 
-func (c *CBData) SetListData(v ...string) {
-	if v != nil || len(v) > 0 {
-		c.data = strings.Join(v, ",")
+func (c CBData) PrevPageByData(v ...string) CBData {
+	intV, _ := myconv.StrToNum[int](c.GetData()[0])
+	if intV > 1 {
+		intV = intV - 1
+	} else if intV <= 0 {
+		intV = 1
 	}
+	param := []string{fmt.Sprintf("%d", intV)}
+	param = append(param, v...)
+	c.SetData(param...)
+	return c
+}
+
+func (c *CBData) SetData(v ...string) {
+	c.data = strings.Join(v, ",")
+}
+
+func (c *CBData) GetData() []string {
+	if c.data != "" {
+		return strings.Split(c.data, ",")
+	}
+	return []string{}
 }
 
 func (c *CBData) IsEmptyData() bool {
 	return c.data == ""
 }
 
-func (c *CBData) GetData() string {
-	return c.data
+func (c *CBData) PathLen() int {
+	return len(strings.Split(c.path, ","))
 }
 
-func (c *CBData) GetListData() []string {
-	if c.data != "" {
-		return strings.Split(c.data, ",")
-	}
-	return []string{}
+func (c *CBData) BackButton(name string, value ...string) tgbotapi.InlineKeyboardButton {
+	return tgbotapi.NewInlineKeyboardButtonData(name, c.PopByData(value...).Encode())
+}
+
+func (c *CBData) BackToRootButton(name string, value ...string) tgbotapi.InlineKeyboardButton {
+	return tgbotapi.NewInlineKeyboardButtonData(name, c.PopRootByData(value...).Encode())
 }
 
 // 当前 Action（当前页面）= path 末尾
@@ -97,58 +146,6 @@ func (c *CBData) Root() string {
 	return parts[0]
 }
 
-func BackToRoot(data CBData) string {
-	data.path = data.Root()
-	data.data = ""
-	return data.Encode()
-}
-
-func Back(c CBData) string {
-	c.PopPath()
-	c.data = ""
-	return c.Encode()
-}
-
-func BackWithData(c CBData, value string) string {
-	c.PopPath()
-	c.data = value
-	return c.Encode()
-}
-
-func NextPage(c CBData) string {
-	intV, _ := myconv.StrToNum[int](c.data)
-	c.data = fmt.Sprintf("%d", intV+1)
-	return c.Encode()
-}
-
-func NextPageWithData(c CBData, v string) string {
-	intV, _ := myconv.StrToNum[int](strings.Split(c.data, ",")[0])
-	c.data = fmt.Sprintf("%d,%s", intV+1, v)
-	return c.Encode()
-}
-
-func PreviousPage(c CBData) string {
-	intV, _ := myconv.StrToNum[int](c.data)
-	if intV > 1 {
-		intV = intV - 1
-	} else if intV <= 0 {
-		intV = 1
-	}
-	c.data = fmt.Sprintf("%d", intV)
-	return c.Encode()
-}
-
-func PreviousPageWithData(c CBData, v string) string {
-	intV, _ := myconv.StrToNum[int](strings.Split(c.data, ",")[0])
-	if intV > 1 {
-		intV = intV - 1
-	} else if intV <= 0 {
-		intV = 1
-	}
-	c.data = fmt.Sprintf("%d,%s", intV, v)
-	return c.Encode()
-}
-
 // Decode 将 base64 字符串解码并解 gzip，还原为 CBData
 func Decode(str string) (*CBData, error) {
 	c := &CBData{}
@@ -165,4 +162,88 @@ func Decode(str string) (*CBData, error) {
 		}
 	}
 	return c, nil
+}
+
+func BuildBackList(data CBData,
+	backFun func() (name string, value []string),
+	bRootFun func() (name string, value []string)) []tgbotapi.InlineKeyboardButton {
+	var backName, backRootName string
+	var backValue, backRootValue []string
+	if backFun != nil {
+		backName, backValue = backFun()
+	}
+
+	if bRootFun != nil {
+		backRootName, backRootValue = bRootFun()
+	}
+
+	var ret []tgbotapi.InlineKeyboardButton
+	if data.PathLen() > 2 {
+		ret = append(ret, tgbotapi.NewInlineKeyboardButtonData(backName, data.PopByData(backValue...).Encode()),
+			tgbotapi.NewInlineKeyboardButtonData(backRootName, data.PopRootByData(backRootValue...).Encode()))
+	} else {
+		ret = append(ret, tgbotapi.NewInlineKeyboardButtonData(backRootName, data.PopRootByData(backRootValue...).Encode()))
+	}
+	return ret
+}
+
+func BuildBackListRow(data CBData,
+	backFun func() (name string, value []string),
+	bRootFun func() (name string, value []string)) [][]tgbotapi.InlineKeyboardButton {
+	var backName, backRootName string
+	var backValue, backRootValue []string
+	if backFun != nil {
+		backName, backValue = backFun()
+	}
+
+	if bRootFun != nil {
+		backRootName, backRootValue = bRootFun()
+	}
+
+	var ret [][]tgbotapi.InlineKeyboardButton
+	if data.PathLen() > 2 {
+		ret = append(ret, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(backName, data.PopByData(backValue...).Encode())),
+			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(backRootName, data.PopRootByData(backRootValue...).Encode())))
+	} else {
+		ret = append(ret, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(backRootName, data.PopRootByData(backRootValue...).Encode())))
+	}
+	return ret
+}
+
+func BuildPaginatedList[T any, V string | tgbotapi.InlineKeyboardButton](
+	list []T,
+	currPage, totalPage int,
+	cbItemFn func(index int, item T) V,
+	cbPageBtn func() (prev, next tgbotapi.InlineKeyboardButton),
+) PaginatedResult {
+	var res PaginatedResult
+
+	for i, item := range list {
+		v := cbItemFn(i, item)
+
+		switch val := any(v).(type) {
+		case string:
+			res.TextItems = append(res.TextItems, val)
+		case tgbotapi.InlineKeyboardButton:
+			// 按钮放一行
+			res.ButtonRows = append(res.ButtonRows, tgbotapi.NewInlineKeyboardRow(val))
+		}
+	}
+
+	// 分页按钮
+	if cbPageBtn != nil {
+		prevBtn, nextBtn := cbPageBtn()
+		if totalPage > 1 {
+			//有多页情况
+			if currPage == 1 { //第一页
+				res.ButtonRows = append(res.ButtonRows, tgbotapi.NewInlineKeyboardRow(nextBtn))
+			} else if currPage == totalPage { //最后一页
+				res.ButtonRows = append(res.ButtonRows, tgbotapi.NewInlineKeyboardRow(prevBtn))
+			} else { //中间页
+				res.ButtonRows = append(res.ButtonRows, tgbotapi.NewInlineKeyboardRow(prevBtn, nextBtn))
+			}
+		}
+	}
+
+	return res
 }
